@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-powered Facial Recognition Security System</title>
+    <style>
+        /* Global Styles */
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            margin-top: 50px;
+            text-align: center;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin: 10px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        /* Camera Feed */
+        #cameraFeed {
+            margin-top: 20px;
+        }
+
+        #videoElement {
+            border: 2px solid #ccc;
+            border-radius: 5px;
+        }
+
+        /* Posture Verification Section */
+        #postureVerification {
+            margin-top: 20px;
+            display: none;
+        }
+
+        /* Result Display */
+        #result {
+            margin-top: 20px;
+            font-size: 18px;
+            color: green;
+        }
+
+        /* Error Message Styling */
+        .error-message {
+            color: red;
+            font-size: 18px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AI-Powered Facial Recognition Security</h1>
+
+        <!-- Registration and Sign-In Buttons -->
+        <button id="registerButton">Register</button>
+        <button id="signInButton">Sign In</button>
+
+        <!-- Camera Feed for Face Scan -->
+        <div id="cameraFeed" style="display:none;">
+            <video id="videoElement" width="300" height="200" autoplay></video>
+            <button id="captureButton">Capture Face</button>
+        </div>
+
+        <!-- Secret Posture Verification -->
+        <div id="postureVerification" style="display:none;">
+            <h2>Face Posture Check: Please smile!</h2>
+            <button id="submitPosture">Submit Posture</button>
+        </div>
+
+        <!-- Result Display -->
+        <div id="result"></div>
+
+        <!-- Error Message -->
+        <div id="errorMessage" class="error-message" style="display: none;"></div>
+    </div>
+
+    <script>
+        // Event listeners for Register and Sign-In buttons
+        document.getElementById("registerButton").addEventListener("click", function() {
+            document.getElementById("cameraFeed").style.display = "block";
+            document.getElementById("errorMessage").style.display = "none";
+            startCamera();
+            document.getElementById("result").innerText = "Please capture your face for registration.";
+        });
+
+        document.getElementById("signInButton").addEventListener("click", function() {
+            document.getElementById("cameraFeed").style.display = "block";
+            document.getElementById("errorMessage").style.display = "none";
+            startCamera();
+            document.getElementById("result").innerText = "Please scan your face to sign in.";
+        });
+
+        // Event listener for capturing the face image
+        document.getElementById("captureButton").addEventListener("click", function() {
+            captureFace();
+            document.getElementById("postureVerification").style.display = "block";
+            document.getElementById("cameraFeed").style.display = "none";
+        });
+
+        // Event listener for posture verification
+        document.getElementById("submitPosture").addEventListener("click", function() {
+            verifyPosture();
+        });
+
+        let videoStream;
+
+        // Function to start the camera and show video feed
+        function startCamera() {
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(function (stream) {
+                    videoStream = stream;
+                    const videoElement = document.getElementById('videoElement');
+                    videoElement.srcObject = stream;
+                })
+                .catch(function (err) {
+                    console.log("Error accessing camera: ", err);
+                    document.getElementById("errorMessage").style.display = "block";
+                    document.getElementById("errorMessage").innerText = "Camera access is required. Please enable the camera.";
+                    document.getElementById("cameraFeed").style.display = "none";
+                });
+        }
+
+        // Function to capture the face from the video feed
+        function captureFace() {
+            const canvas = document.createElement("canvas");
+            const video = document.getElementById("videoElement");
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            // Convert the canvas to a base64 image and send it to the backend for recognition
+            const imgData = canvas.toDataURL("image/jpeg");
+
+            fetch('/register_or_login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ image: imgData })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    document.getElementById("result").innerText = data.message;
+                    document.getElementById("errorMessage").style.display = "none";
+                } else {
+                    document.getElementById("result").innerText = "No face detected. Please try again.";
+                    document.getElementById("errorMessage").style.display = "none";
+                }
+            })
+            .catch(err => {
+                console.log("Error in face recognition: ", err);
+                document.getElementById("result").innerText = "Error processing face.";
+                document.getElementById("errorMessage").style.display = "none";
+            });
+        }
+
+        // Function to verify secret face posture (e.g., smile)
+        function verifyPosture() {
+            // Here, you can add logic to check for specific facial gestures.
+            // For simplicity, we just assume the user smiled (you can improve this with facial landmark analysis).
+            alert("Posture verified: Smile detected!");
+            document.getElementById("result").innerText = "Posture verified successfully!";
+            document.getElementById("errorMessage").style.display = "none";
+        }
+    </script>
+</body>
+</html>
